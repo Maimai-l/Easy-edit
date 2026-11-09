@@ -1,0 +1,13 @@
+{
+  "name": "easy-edit",
+  "private": true,
+  "description": "Web part of Easy Edit. Only needed to change the editor itself; building the app needs no Node.",
+  "scripts": {
+    "build:app": "OUT=web node src/build.mjs app",
+    "build:web": "OUT=dist-web node src/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "monaco-editor": "0.57.0"
+  }
+}
