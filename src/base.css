@@ -41,10 +41,6 @@ select.quiet{font-weight:400;color:var(--fg2)}
 option{color:initial}
 
 .stat{color:var(--fg3);font-size:12px;font-variant-numeric:tabular-nums;padding:0 6px;white-space:nowrap}
-.tc{color:var(--fg2);font-size:12px;padding:0 8px;height:28px;display:inline-flex;align-items:center;gap:6px;border-radius:6px;cursor:default;white-space:nowrap}
-.tc:hover{background:var(--hover)}
-.tc.bad{color:var(--fg)}
-.tc.bad::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--red)}
 
 main{flex:1;display:flex;min-height:0}
 .pane{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
@@ -74,7 +70,8 @@ label.chk input{accent-color:var(--fg2);margin:0}
 .cons .l{padding:3px 16px;white-space:pre-wrap;word-break:break-word;border-bottom:.5px solid var(--hair)}
 .cons .warn{color:var(--amber)}
 .cons .error{color:var(--red)}
-.cons .sys{color:var(--fg3);font-family:var(--sans);border-bottom:0;padding-top:8px}
+.cons .sys{display:flex;justify-content:space-between;gap:12px;color:var(--fg3);font-family:var(--sans);border-bottom:0;padding-top:8px}
+.cons .dur{font-variant-numeric:tabular-nums}
 
 .toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,8px);background:var(--bar);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:.5px solid var(--hair);box-shadow:0 8px 24px rgba(0,0,0,.12);padding:9px 16px;border-radius:10px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;font-size:12px;z-index:9}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -84,8 +81,7 @@ label.chk input{accent-color:var(--fg2);margin:0}
 /* never let controls wrap or squash; give way in a fixed order instead */
 header>*, .pane-head>*, .tabs>*{flex:none}
 header .spacer, .pane-head .spacer{flex:1 1 0;min-width:0}
-button,select,label,.tc,.stat{white-space:nowrap}
-header,.pane-head{overflow:hidden}
+button,select,label,header,.pane-head{overflow:hidden}
 button.icon{padding:0 7px}
 button.icon svg{width:15px;height:15px}
 .tab .n{margin-left:5px}
@@ -105,10 +101,9 @@ button.icon svg{width:15px;height:15px}
 
 #editor{flex:1;min-height:0;min-width:0;position:relative}
 #editorPane{display:flex}
-body:not(.ready) #editor::after{content:"正在载入编辑器";position:absolute;left:56px;top:16px;color:var(--fg3);font:12px var(--sans)}
-.tc.busy{color:var(--fg3)}
+body:not(.ready) #editor::after{content:"正在载入编辑器…";position:absolute;left:56px;top:16px;color:var(--fg3);font:12px var(--sans)}
 /* Monaco widgets: match the page */
-.monaco-editor .suggest-widget,.monaco-editor .monaco-hover,.monaco-editor .parameter-hints-widget,.monaco-editor .find-widget,.quick-input-widget{border-radius:8px!important;box-shadow:0 8px 28px rgba(0,0,0,.14)!important}
+.monaco-editor .suggest-widget,.monaco-editor .monaco-hover,.monaco-menu-container .monaco-menu,.monaco-editor .parameter-hints-widget,.monaco-editor .find-widget,.quick-input-widget{border-radius:8px!important;box-shadow:0 8px 28px rgba(0,0,0,.14)!important}
 .monaco-editor .suggest-widget .monaco-list .monaco-list-row{border-radius:5px}
 .monaco-editor,.monaco-editor .monaco-hover{font-family:var(--sans)}
 .monaco-editor .squiggly-error{background-size:6px 3px!important}
@@ -125,7 +120,7 @@ body.files-open #files{display:flex}
 .f .nm{flex:1;min-width:0}
 .f .t{font:12px/1.5 var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .f .t.empty{color:var(--fg3);font-family:var(--sans)}
-.f .meta{font-size:11px;color:var(--fg3);margin-top:1px}
+.f .meta{display:flex;justify-content:space-between;font-size:11px;color:var(--fg3);margin-top:1px}
 .f .del{visibility:hidden;height:22px;padding:0 5px;color:var(--fg3);font-size:12px}
 .f:hover .del,.f .del.armed{visibility:visible}
 .f .del.armed{color:var(--red)}

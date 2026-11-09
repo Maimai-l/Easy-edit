@@ -165,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
         let fileItem = NSMenuItem(); main.addItem(fileItem)
         let fileMenu = NSMenu(title: "文件")
         fileMenu.addItem(item("新建草稿", "n", #selector(menuNew)))
-        fileMenu.addItem(item("存储为…", "s", #selector(menuSave)))
+        fileMenu.addItem(item("存储…", "s", #selector(menuSave)))
         fileMenu.addItem(.separator())
         fileMenu.addItem(item("在 Finder 中打开工作目录", "", #selector(menuReveal)))
         fileMenu.addItem(.separator())
@@ -387,14 +387,14 @@ final class Engine {
 
         switch lang {
         case "python":
-            guard let python = pythonPath else { throw RunError(message: "没有找到 python3") }
+            guard let python = pythonPath else { throw RunError(message: "未找到 python3") }
             let src = dir.appendingPathComponent("main.py")
             try code.write(to: src, atomically: true, encoding: .utf8)
             try launch(run, exe: python, args: ["-u", src.path], cwd: workdir, env: env) { status, _ in
                 self.finish(run, code: status, how: "exit")
             }
         case "cpp":
-            guard let clang = clangPath else { throw RunError(message: "没有找到 clang++，请安装 Xcode 命令行工具") }
+            guard let clang = clangPath else { throw RunError(message: "未找到 clang++，请先安装 Xcode 命令行工具") }
             let src = dir.appendingPathComponent("main.cpp")
             let bin = dir.appendingPathComponent("main")
             try code.write(to: src, atomically: true, encoding: .utf8)
@@ -412,7 +412,7 @@ final class Engine {
                 }
             }
         default:
-            throw RunError(message: "这里不能运行 \(lang)")
+            throw RunError(message: "无法运行 \(lang)")
         }
     }
 
@@ -466,7 +466,7 @@ final class Engine {
         run.emittedChars += clean.count
         if run.emittedChars > 2_000_000 {
             run.truncated = true
-            clean = "\n[输出太多，后面的内容不再显示；程序仍在运行，可以点停止]\n"
+            clean = "\n输出过多，后续内容不再显示\n"
             stream = "err"
         }
         run.outputLock.unlock()

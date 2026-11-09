@@ -1,3 +1,4 @@
+import '../node_modules/monaco-editor/esm/vs/nls/lang/zh-cn.js';
 import '../node_modules/monaco-editor/esm/vs/languages/definitions/cpp/register.js';
 import '../node_modules/monaco-editor/esm/vs/languages/definitions/csharp/register.js';
 import '../node_modules/monaco-editor/esm/vs/languages/definitions/css/register.js';

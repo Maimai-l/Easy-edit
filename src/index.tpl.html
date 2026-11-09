@@ -13,15 +13,14 @@
   <select id="lang" title="语言"></select>
   <span class="spacer"></span>
   <span class="stat" id="stat"></span>
-  <span class="tc hidden" id="tc" title="类型检查，点击查看问题"></span>
-  <button id="download" class="hidden" title="下载这份草稿"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v7.5M4.8 7 8 10.2 11.2 7M3 13.5h10"/></svg>下载</button>
-  <button id="copy" title="复制全部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5.5" y="5.5" width="8" height="8" rx="1.8"/><path d="M10.5 3.5v-.2A1.8 1.8 0 0 0 8.7 1.5H4.3A1.8 1.8 0 0 0 2.5 3.3v4.4a1.8 1.8 0 0 0 1.8 1.8h.2"/></svg>复制</button>
+  <button id="download" class="hidden" title="下载"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v7.5M4.8 7 8 10.2 11.2 7M3 13.5h10"/></svg>下载</button>
+  <button id="copy" title="复制全部代码"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5.5" y="5.5" width="8" height="8" rx="1.8"/><path d="M10.5 3.5v-.2A1.8 1.8 0 0 0 8.7 1.5H4.3A1.8 1.8 0 0 0 2.5 3.3v4.4a1.8 1.8 0 0 0 1.8 1.8h.2"/></svg>复制</button>
   <button id="run" title="运行"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.9v10.2c0 .6.7 1 1.2.7l8-5.1a.8.8 0 0 0 0-1.4l-8-5.1c-.5-.3-1.2.1-1.2.7z"/></svg>运行</button>
-  <button id="stop" class="hidden" title="停止"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5"/></svg><span id="stopTxt">停止</span></button>
+  <button id="stop" class="hidden" title="停止"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5"/></svg>停止</button>
   <button id="more" class="icon" title="更多" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="12.5" cy="8" r="1.25"/></svg></button>
   <div class="menu hidden" id="menu" role="menu">
     <label class="mi"><span>缩进</span><select id="indent" class="quiet">
-      <option value="2">2 空格</option><option value="4">4 空格</option><option value="tab">Tab</option>
+      <option value="2">2 个空格</option><option value="4">4 个空格</option><option value="tab">制表符</option>
     </select></label>
     <label class="mi"><span>自动换行</span><input type="checkbox" id="wrap"><i class="check"></i></label>
     <label class="mi"><span>小地图</span><input type="checkbox" id="minimap"><i class="check"></i></label>
@@ -36,16 +35,16 @@
     <button class="mi" id="palette">命令面板</button>
     <div class="msep"></div>
     <button class="mi hidden" id="reveal">在 Finder 中打开工作目录</button>
-    <button class="mi hidden" id="downloadAll">下载全部草稿（zip）</button>
-    <button class="mi" id="clearCons">清除控制台</button>
+    <button class="mi hidden" id="downloadAll">下载全部草稿</button>
+    <button class="mi" id="clearCons">清空控制台</button>
     <button class="mi" id="clear">清空代码</button>
   </div>
 </header>
 <main>
   <aside id="files">
-    <div class="files-head"><span>最近</span><button id="newFile" class="icon quiet" title="新草稿（Alt + N）"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></button></div>
+    <div class="files-head"><span>最近</span><button id="newFile" class="icon quiet" title="新建草稿"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg></button></div>
     <div id="fileList"></div>
-    <div class="files-foot">自动保存在这个浏览器里，保留最近 50 份</div>
+    <div class="files-foot">草稿只保存在此浏览器中</div>
   </aside>
   <section class="pane" id="editorPane">
     <div id="editor"></div>
@@ -55,13 +54,13 @@
       <div class="tabs">
         <button class="tab on" data-v="cons">控制台</button>
         <button class="tab tsopt" data-v="probs" id="tabProbs">问题<span class="n" id="nProbs"></span></button>
-        <button class="tab tsopt" data-v="js" id="tabJs">JS</button>
+        <button class="tab tsopt" data-v="js" id="tabJs">编译结果</button>
       </div>
       <span class="spacer"></span>
       <button id="copySide" class="quiet">复制</button>
     </div>
-    <div class="view cons" id="v-cons"><div class="empty" id="consEmpty">运行结果会显示在这里。</div></div>
-    <div class="view probs hidden" id="v-probs"><div class="empty">没有问题。</div></div>
+    <div class="view cons" id="v-cons"><div class="empty" id="consEmpty">按 Cmd + Enter 运行</div></div>
+    <div class="view probs hidden" id="v-probs"><div class="empty">没有类型错误</div></div>
     <div class="view hidden" id="v-js"><pre id="jsOut"></pre></div>
   </section>
 </main>

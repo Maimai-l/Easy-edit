@@ -80,6 +80,9 @@ const LIGHT = {
     "editorError.foreground":"#d70015", "editorWarning.foreground":"#c27c00",
     "focusBorder":"#00000000", "input.background":"#ffffff", "input.border":"#0000001a", "inputOption.activeBorder":"#00000040",
     "minimap.background":"#ffffff",
+    "menu.background":"#fbfbfb", "menu.foreground":"#1d1d1f", "menu.border":"#0000001a",
+    "menu.selectionBackground":"#0000000f", "menu.selectionForeground":"#1d1d1f", "menu.separatorBackground":"#0000001a",
+    "widget.shadow":"#00000024",
   },
 };
 const DARK = {
@@ -106,6 +109,9 @@ const DARK = {
     "editorError.foreground":"#ff6961", "editorWarning.foreground":"#ffb340",
     "focusBorder":"#00000000", "input.background":"#1e1e1e", "input.border":"#ffffff1a", "inputOption.activeBorder":"#ffffff40",
     "minimap.background":"#1e1e1e",
+    "menu.background":"#2a2a2c", "menu.foreground":"#f5f5f7", "menu.border":"#ffffff1a",
+    "menu.selectionBackground":"#ffffff14", "menu.selectionForeground":"#f5f5f7", "menu.separatorBackground":"#ffffff1a",
+    "widget.shadow":"#00000066",
   },
 };
 function rules(x){
@@ -201,7 +207,7 @@ function saveAll(){
   clearTimeout(saveT);
   saveT = setTimeout(() => {
     try { localStorage.setItem("ed.scratch", JSON.stringify(scratches)); localStorage.setItem("ed.activeScratch", activeId); }
-    catch { if (!quotaWarned) { quotaWarned = true; toast("浏览器存储空间不够了，最近的修改没有存上"); } }
+    catch { if (!quotaWarned) { quotaWarned = true; toast("存储空间已满，最近的修改未能保存"); } }
   }, 250);
 }
 const models = new Map(), views = new Map();
@@ -263,6 +269,7 @@ const editor = monaco.editor.create($("editor"), {
   overviewRulerLanes: 2, hideCursorInOverviewRuler: true, overviewRulerBorder: false,
   scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10, useShadows: false, alwaysConsumeMouseWheel: false },
   contextmenu: true, mouseWheelZoom: true, dragAndDrop: true,
+  useShadowDOM: false, // the context menu must see the page's inlined Monaco styles
   unicodeHighlight: { ambiguousCharacters: false, invisibleCharacters: true },
   accessibilitySupport: "off",
 });
@@ -273,7 +280,7 @@ function renderStat(){
   const p = editor.getPosition();
   const sel = editor.getSelection();
   const selLen = sel && !sel.isEmpty() ? model.getValueInRange(sel).length : 0;
-  $("stat").textContent = p ? `行 ${p.lineNumber}，列 ${p.column}` + (selLen ? `（已选 ${selLen}）` : "") : "";
+  $("stat").textContent = selLen ? `已选择 ${selLen} 个字符` : p ? `行 ${p.lineNumber}，列 ${p.column}` : "";
 }
 editor.onDidChangeCursorSelection(renderStat);
 
@@ -283,10 +290,9 @@ function refreshChrome(){
   langSel.value = lang(); fitSelect(langSel);
   document.title = titleOf(active()) || "草稿";
   document.querySelectorAll(".tsopt").forEach(el => el.classList.toggle("hidden", !isTS()));
-  $("tc").classList.toggle("hidden", !isTS());
   $("run").disabled = !canRun();
-  $("run").title = canRun() ? `运行（${KEY} + Enter）`
-    : lang() === "python" ? "没有找到 python3" : lang() === "cpp" ? "没有找到 clang++，请安装 Xcode 命令行工具" : "纯文本不能运行";
+  $("run").title = canRun() ? "运行"
+    : lang() === "python" ? "未找到 python3" : lang() === "cpp" ? "未找到 clang++，请先安装 Xcode 命令行工具" : "纯文本无法运行";
   if (!isTS() && curView !== "cons") show("cons");
   renderList();
 }
@@ -359,7 +365,7 @@ function renderList(){
   const list = $("fileList");
   list.innerHTML = recent().map(s => {
     const title = titleOf(s);
-    return `<div class="f${s.id === activeId ? " on" : ""}" data-id="${s.id}"><div class="nm"><div class="t${title ? "" : " empty"}">${title ? esc(title) : "空白草稿"}</div><div class="meta">${SHORT[s.lang]} · ${ago(s.mtime)}</div></div><button class="del" title="删除">${TRASH}</button></div>`;
+    return `<div class="f${s.id === activeId ? " on" : ""}" data-id="${s.id}"><div class="nm"><div class="t${title ? "" : " empty"}">${title ? esc(title) : "空白草稿"}</div><div class="meta"><span>${ago(s.mtime)}</span><span>${SHORT[s.lang]}</span></div></div><button class="del" title="删除">${TRASH}</button></div>`;
   }).join("");
   if (active()) document.title = titleOf(active()) || "草稿";
 }
@@ -416,11 +422,11 @@ function zip(entries){ // stored (no compression): tiny, and plenty for text
 }
 let downloads = null;
 async function save(filename, data){
-  if (!downloads) return toast("这里不能下载文件");
+  if (!downloads) return toast("此处无法下载文件");
   try { await downloads.save({ filename, data }); toast(`已下载 ${filename}`); }
   catch (e) {
     if (e?.code === "declined") return;
-    toast(e?.code === "rate_limited" ? "已经有一个下载在等确认" : "下载失败：" + (e?.message || e?.code || e));
+    toast(e?.code === "rate_limited" ? "请先完成上一个下载" : "下载失败：" + (e?.message || e?.code || e));
   }
 }
 const stamp = t => { const d = new Date(t), p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`; };
@@ -446,7 +452,7 @@ async function saveNative(){
 if (__APP__) {
   $("download").onclick = saveNative;
   $("download").lastChild.textContent = "存储";
-  $("download").title = "存储为文件（Cmd + S）";
+  $("download").title = "存储为文件";
   $("download").classList.remove("hidden");
 } else {
 $("download").onclick = downloadActive;
@@ -469,14 +475,13 @@ function updateProblems(){
                  cat: m.severity === monaco.MarkerSeverity.Error ? "error" : "warn" }));
   renderProbs();
   const n = lastDiags.length;
-  setTc(n ? "bad" : "ok", n ? `${n} 个问题` : "无类型错误");
   $("nProbs").textContent = n || "";
 }
-function setTc(cls, text){ const t = $("tc"); t.className = "tc " + cls + (isTS() ? "" : " hidden"); t.textContent = text; }
+function setTc(){} // the problem count lives on the Problems tab
 monaco.editor.onDidChangeMarkers(uris => { if (uris.some(u => u.toString() === model.uri.toString())) updateProblems(); });
 function renderProbs(){
   const v = $("v-probs");
-  if (!lastDiags.length) { v.innerHTML = `<div class="empty">没有类型错误。</div>`; return; }
+  if (!lastDiags.length) { v.innerHTML = `<div class="empty">没有类型错误</div>`; return; }
   v.innerHTML = lastDiags.map((d,i) =>
     `<div class="p ${d.cat}" data-i="${i}"><span class="loc">${d.line}:${d.col}</span><span class="msg">${esc(d.msg)}</span><span class="ts">${d.code ? "TS" + d.code : ""}</span></div>`
   ).join("");
@@ -488,7 +493,6 @@ $("v-probs").addEventListener("click", e => {
   editor.revealPositionInCenterIfOutsideViewport({ lineNumber: d.line, column: d.col });
   editor.focus();
 });
-$("tc").onclick = () => show("probs");
 
 // ---------- side tabs ----------
 let curView = "cons";
@@ -525,8 +529,8 @@ function toast(msg){
   clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 1500);
 }
 async function copyText(text, label){
-  if (!text) return toast("没有内容可复制");
-  if (bridge) { try { await native("copy", { text }); toast(`已复制${label}，${text.length} 字符`); return; } catch {} }
+  if (!text) return toast("没有可复制的内容");
+  if (bridge) { try { await native("copy", { text }); toast(`已复制${label}`); return; } catch {} }
   try { await navigator.clipboard.writeText(text); }
   catch {
     const ta = document.createElement("textarea");
@@ -534,15 +538,15 @@ async function copyText(text, label){
     document.body.appendChild(ta); ta.select();
     let ok = false; try { ok = document.execCommand("copy"); } catch {}
     ta.remove();
-    if (!ok) return toast("复制被浏览器拒绝了，请手动全选后复制");
+    if (!ok) return toast("无法访问剪贴板，请手动选择后复制");
   }
-  toast(`已复制${label}，${text.length} 字符`);
+  toast(`已复制${label}`);
 }
-const copyAll = () => copyText(model.getValue(), "代码");
+const copyAll = () => copyText(model.getValue(), "");
 $("copy").onclick = copyAll;
 $("copySide").onclick = async () => {
-  if (curView === "js") return copyText(await compileJs(), " JS");
-  if (curView === "probs") return copyText(lastDiags.map(d => `L${d.line}:${d.col} TS${d.code}: ${d.msg}`).join("\n"), "问题列表");
+  if (curView === "js") return copyText(await compileJs(), "编译结果");
+  if (curView === "probs") return copyText(lastDiags.map(d => `${d.line}:${d.col} TS${d.code} ${d.msg}`).join("\n"), "问题列表");
   copyText([...$("v-cons").querySelectorAll(".l")].map(l => l.textContent).join("\n"), "控制台输出");
 };
 
@@ -568,7 +572,7 @@ $("clear").onclick = () => {
     editor.pushUndoStop();
     delete b.dataset.armed; b.textContent = "清空代码"; closeMenu(); editor.focus();
   } else {
-    b.dataset.armed = 1; b.textContent = "再点一次以清空";
+    b.dataset.armed = 1; b.textContent = "再次点按以清空";
     setTimeout(() => { delete b.dataset.armed; b.textContent = "清空代码"; }, 2500);
   }
 };
@@ -602,20 +606,21 @@ function rewriteImports(js){
          .replace(/(\bimport\s*\(\s*)(["'])([^"']+)\2(\s*\))/g, sub);
   return { js, nodeMods };
 }
-let worker, runT0, tick;
-function line(cls, text){
+const dur = ms => ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
+let worker, runT0;
+function line(cls, text, time){
   const v = $("v-cons");
   v.querySelector(".empty")?.remove();
   const d = document.createElement("div");
   d.className = "l " + cls; d.textContent = text;
+  if (time != null) { const s = document.createElement("span"); s.className = "dur"; s.textContent = time; d.appendChild(s); }
   v.appendChild(d);
   v.scrollTop = v.scrollHeight;
 }
-function stopWorker(msg){
+function stopWorker(msg, ms){
   if (worker) { worker.terminate(); worker = null; }
-  clearInterval(tick);
-  $("run").classList.remove("hidden"); $("stop").classList.add("hidden"); $("stopTxt").textContent = "停止";
-  if (msg) line("sys", msg);
+  $("run").classList.remove("hidden"); $("stop").classList.add("hidden");
+  if (msg) line("sys", msg, ms == null ? null : dur(ms));
 }
 const R = s => String(s).replace(/blob:[^\s)]+/g, "main.js");
 async function run(){
@@ -628,31 +633,28 @@ async function run(){
   try { js = await compileJs(); } catch (e) { return line("error", "编译失败：" + e.message); }
   const { js: out, nodeMods } = rewriteImports(js);
   if (nodeMods.length) {
-    return line("error", `Node 内置模块 ${[...new Set(nodeMods)].map(m => `'${m}'`).join("、")} 在浏览器里不可用。这里只能运行不依赖 Node API 的代码。`);
+    return line("error", `无法使用 Node 内置模块：${[...new Set(nodeMods)].join("、")}`);
   }
-  const errs = lastDiags.filter(d => d.cat === "error").length;
-  if (isTS() && errs) line("sys", `有 ${errs} 个类型问题，照常运行。`);
   const src = PRELUDE + "\n" + out + "\n;globalThis.__done();\n";
   const url = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
   try { worker = new Worker(url, { type: "module" }); }
-  catch (e) { return line("error", "无法创建运行环境：" + e.message); }
+  catch (e) { return line("error", "无法运行：" + e.message); }
   runT0 = performance.now();
   $("run").classList.add("hidden"); $("stop").classList.remove("hidden");
   let finished = false;
-  tick = setInterval(() => { $("stopTxt").textContent = `停止  ${((performance.now()-runT0)/1000).toFixed(1)}s`; }, 100);
   worker.onmessage = ({ data: [t, d] }) => {
     if (t === "log") line("", d);
     else if (t === "warn") line("warn", d);
-    else if (t === "error") { line("error", d); if (!finished) { finished = true; setTimeout(() => worker && stopWorker(`出错退出，${Math.round(performance.now()-runT0)} ms`), 50); } }
+    else if (t === "error") { line("error", d); if (!finished) { finished = true; setTimeout(() => worker && stopWorker("运行出错", performance.now()-runT0), 50); } }
     else if (t === "out") line("", d.replace(/\n$/, ""));
     else if (t === "errout") line("error", d.replace(/\n$/, ""));
-    else if (t === "exit") { finished = true; stopWorker(`process.exit(${d})`); }
+    else if (t === "exit") { finished = true; stopWorker(`退出码 ${d}`, performance.now()-runT0); }
     else if (t === "done") { finished = true; }
-    else if (t === "idle") stopWorker(`运行结束，${Math.round(performance.now()-runT0)} ms`);
+    else if (t === "idle") stopWorker("运行结束", performance.now()-runT0);
   };
   worker.onerror = e => {
     e.preventDefault?.();
-    line("error", e.message ? R(e.message) : "运行环境加载失败（可能是 import 的包不存在，或语法错误）");
+    line("error", e.message ? R(e.message) : "无法加载代码，请检查语法和 import 的包名");
     stopWorker();
   };
   URL.revokeObjectURL(url);
@@ -677,17 +679,15 @@ window.__ee = {
     if (id !== nativeId) return;
     flushStream("out", true); flushStream("err", true);
     nativeId = null;
-    clearInterval(tick);
-    $("run").classList.remove("hidden"); $("stop").classList.add("hidden"); $("stopTxt").textContent = "停止";
-    const t = ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;
-    const SIG = { 4: "非法指令", 6: "abort", 8: "浮点异常（比如整数除以 0）", 9: "被强制结束", 10: "总线错误", 11: "段错误（访问了非法内存）", 15: "被终止" };
-    line("sys", how === "stopped" ? `已停止，${t}` : how === "compile" ? `编译失败，${t}`
-      : code === 0 ? `运行结束，${t}` : code < 0 ? `程序崩溃：${SIG[-code] || "信号 " + -code}，${t}` : `退出码 ${code}，${t}`);
+    $("run").classList.remove("hidden"); $("stop").classList.add("hidden");
+    const SIG = { 4: "非法指令", 6: "已中止", 8: "浮点异常", 9: "已强制结束", 10: "总线错误", 11: "段错误", 15: "已终止" };
+    line("sys", how === "stopped" ? "已停止" : how === "compile" ? "编译失败" : how === "error" ? "无法运行"
+      : code === 0 ? "运行结束" : code < 0 ? `程序崩溃：${SIG[-code] || "信号 " + -code}` : `退出码 ${code}`, dur(ms));
     markRunErrors(nerr);
   },
   // menu items in the Mac app
   run: () => run(), newScratch: () => newScratch(), save: () => saveNative(),
-  stop: () => { if (nativeId) stopNative(); else if (worker) stopWorker(`已停止，${((performance.now()-runT0)/1000).toFixed(1)} s`); },
+  stop: () => { if (nativeId) stopNative(); else if (worker) stopWorker("已停止", performance.now()-runT0); },
   undo: () => editor.hasTextFocus() ? editor.trigger("menu", "undo") : document.execCommand("undo"),
   redo: () => editor.hasTextFocus() ? editor.trigger("menu", "redo") : document.execCommand("redo"),
   selectAll: () => editor.hasTextFocus() ? editor.trigger("menu", "editor.action.selectAll") : document.execCommand("selectAll"),
@@ -717,15 +717,14 @@ async function runNativeLang(){
   nativeId = newId(); nbuf = { out: "", err: "" }; nerr = "";
   runT0 = performance.now();
   $("run").classList.add("hidden"); $("stop").classList.remove("hidden");
-  tick = setInterval(() => { $("stopTxt").textContent = `停止  ${((performance.now()-runT0)/1000).toFixed(1)}s`; }, 100);
-  if (lang() === "cpp") line("sys", "编译中…");
+  if (lang() === "cpp") line("sys", "正在编译…");
   try { await native("run", { id: nativeId, lang: lang(), code: model.getValue() }); }
   catch (e) { line("error", "无法运行：" + e.message); window.__ee.exit(nativeId, -1, 0, "error"); }
 }
 const stopNative = () => nativeId ? native("stop", { id: nativeId }).catch(() => {}) : Promise.resolve();
 const runAny = () => isNativeLang() ? (canRun() ? runNativeLang() : toast($("run").title)) : run();
 $("run").onclick = runAny;
-$("stop").onclick = () => nativeId ? stopNative() : stopWorker(`已停止，${((performance.now()-runT0)/1000).toFixed(1)} s`);
+$("stop").onclick = () => nativeId ? stopNative() : stopWorker("已停止", performance.now()-runT0);
 
 // keys: inside the editor Monaco owns the keyboard, so register there too
 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, runAny);
@@ -738,7 +737,7 @@ document.addEventListener("keydown", e => {
   if (e.altKey && e.code === "KeyN") { e.preventDefault(); newScratch(); }
 });
 
-$("consEmpty").textContent = `按 ${KEY} + Enter 运行，结果会显示在这里。`;
+$("consEmpty").textContent = `按 ${KEY} + Enter 运行`;
 if (__APP__) {
   const header = document.querySelector("header");
   const interactive = t => t.closest("button, select, input, label, a, .tc, .menu");
@@ -747,7 +746,7 @@ if (__APP__) {
   $("reveal").classList.remove("hidden");
   $("reveal").onclick = () => { closeMenu(); native("reveal").catch(() => {}); };
   $("downloadAll").remove();
-  document.querySelector(".files-foot").textContent = "自动保存在本机，保留最近 50 份";
+  document.querySelector(".files-foot").remove();
   native("env").then(e => {
     env = { ...env, ...e };
     $("reveal").textContent = `在 Finder 中打开工作目录`;
@@ -755,7 +754,7 @@ if (__APP__) {
     refreshChrome();
   }).catch(() => {});
 }
-$("copy").title = `复制全部（${KEY} + Shift + C）`;
+$("copy").title = "复制全部代码";
 refreshChrome();
 if (isTS()) setTc("busy", "正在检查");
 // markers only fire on change; settle the status once the worker has had a first pass
